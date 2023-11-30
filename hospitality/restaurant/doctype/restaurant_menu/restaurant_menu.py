@@ -44,12 +44,12 @@ class RestaurantMenu(Document):
 
 	def get_price_list(self):
 		'''Create price list for menu if missing'''
-		price_list_name = frappe.db.get_value('Price List', dict(restaurant_menu=self.name))
+		price_list_name = frappe.db.get_value('Price List', dict(custom_restaurant_menu=self.name))
 		if price_list_name:
 			price_list = frappe.get_doc('Price List', price_list_name)
 		else:
 			price_list = frappe.new_doc('Price List')
-			price_list.restaurant_menu = self.name
+			price_list.custom_restaurant_menu = self.name
 			price_list.price_list_name = self.name
 
 		price_list.enabled = 1

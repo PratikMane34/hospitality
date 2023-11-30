@@ -54,7 +54,8 @@ frappe.ui.form.on('Restaurant Order Entry', {
 				return frappe.run_serially([
 					() => {
 						if (!added) {
-							return frm.add_child('items', {item: item, qty: 1});
+							
+							return frm.add_child('items', {item: item, qty: 1, rate : 200});
 						}
 					},
 					() => frm.get_field("items").refresh()
@@ -83,6 +84,7 @@ frappe.ui.form.on('Restaurant Order Entry', {
 	},
 	restaurant_table: function(frm) {
 		// select the open sales order items for this table
+
 		if (!frm.doc.restaurant_table) {
 			return;
 		}

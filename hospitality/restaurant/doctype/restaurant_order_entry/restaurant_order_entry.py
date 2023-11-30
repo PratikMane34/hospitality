@@ -17,7 +17,8 @@ class RestaurantOrderEntry(Document):
 @frappe.whitelist()
 def get_invoice(table):
 	'''returns the active invoice linked to the given table'''
-	invoice_name = frappe.get_value('Sales Invoice', dict(restaurant_table = table, docstatus=0))
+	#Getting error her because there is no restaurant field in Sales invoice
+	invoice_name = frappe.get_value('Sales Invoice', dict(custom_restaurant_table = table, docstatus=0))
 	restaurant, menu_name = get_restaurant_and_menu_name(table)
 	if invoice_name:
 		invoice = frappe.get_doc('Sales Invoice', invoice_name)
@@ -29,10 +30,11 @@ def get_invoice(table):
 		if not default_customer:
 			frappe.throw(_('Please set default customer in Restaurant Settings'))
 		invoice.customer = default_customer
+		invoice.custom_restaurant_table = table
 
 	invoice.taxes_and_charges = frappe.db.get_value('Restaurant', restaurant, 'default_tax_template')
-	invoice.selling_price_list = frappe.db.get_value('Price List', dict(restaurant_menu=menu_name, enabled=1))
-
+	invoice.selling_price_list = frappe.db.get_value('Price List', dict(custom_restaurant_menu=menu_name, enabled=1))
+	print(f"--- invoice --- \n{invoice}")
 	return invoice
 
 @frappe.whitelist()
@@ -40,9 +42,12 @@ def sync(table, items):
 	'''Sync the sales order related to the table'''
 	invoice = get_invoice(table)
 	items = json.loads(items)
+	restaurant, menu_name = get_restaurant_and_menu_name(table)
+	invoice.selling_price_list = frappe.db.get_value('Price List', dict(custom_restaurant_menu=menu_name, enabled=1))
 
 	invoice.items = []
-	invoice.restaurant_table = table
+	invoice.custom_restaurant = restaurant
+	invoice.custom_restaurant_table = table
 	for d in items:
 		invoice.append('items', dict(
 			item_code = d.get('item'),
@@ -58,7 +63,7 @@ def make_invoice(table, customer, mode_of_payment):
 	restaurant, menu = get_restaurant_and_menu_name(table)
 	invoice = get_invoice(table)
 	invoice.customer = customer
-	invoice.restaurant = restaurant
+	invoice.custom_restaurant = restaurant
 	invoice.calculate_taxes_and_totals()
 	invoice.append('payments', dict(mode_of_payment=mode_of_payment, amount=invoice.grand_total))
 	invoice.save()
@@ -84,7 +89,6 @@ def get_restaurant_and_menu_name(table):
 
 	restaurant = frappe.db.get_value('Restaurant Table', table, 'restaurant')
 	menu = frappe.db.get_value('Restaurant', restaurant, 'active_menu')
-
 	if not menu:
 		frappe.throw(_('Please set an active menu for Restaurant {0}').format(restaurant))
 
